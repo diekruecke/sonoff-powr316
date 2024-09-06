@@ -1,0 +1,169 @@
+substitutions:
+  device_name: "sonoff-powr316"
+  friendly_name: "Sonoff POWR316"
+  
+  domain_name: ".smarthome"
+
+  sensor_update_interval: 10s
+
+packages:
+  esphome_basis: !include includes/esphome_config.yaml
+  homeassistant: !include includes/homeassistant_config.yaml
+
+esphome:
+  # name: sonoff-powr320d
+  # friendly_name: $friendly_name
+
+  # name_add_mac_suffix: true
+
+  on_boot:
+    priority: 250
+    then:
+      - light.turn_on: switch_led
+
+esp32:
+  board: nodemcu-32s
+
+# wifi:
+#   domain: ".smarthome"
+#   ap:
+
+# captive_portal:
+
+# logger:
+
+# web_server:
+#   version: 2
+
+# api:
+
+http_request:
+  verify_ssl: false
+
+# ota:
+#   - platform: esphome
+#   - platform: http_request
+
+update:
+  - platform: http_request
+    id: firmware_update_start
+    name: Firmware Update
+    source: https://diekruecke.github.io/sonoff-powr316/firmware/manifest.json
+    update_interval: 1h
+
+uart:
+  rx_pin: GPIO16
+  baud_rate: 4800
+  parity: even
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+sensor:
+  - platform: cse7766
+    current:
+      name: Stromstärke
+      id: a_sensor
+      filters:
+        - throttle_average: ${sensor_update_interval}
+    voltage:
+      name: Stromspannung
+      id: v_sensor
+      filters:
+        - throttle_average: ${sensor_update_interval}
+    power:
+      name: Leistung
+      id: w_sensor
+      filters:
+        - throttle_average: ${sensor_update_interval}
+    energy:
+      name: Energie
+      id: wh_sensor
+      filters:
+        - throttle_average: ${sensor_update_interval}
+    power_factor:
+      name: Power Factor
+      filters:
+        - throttle_average: ${sensor_update_interval}
+    apparent_power:
+      name: Apparent Power
+      id: apparent_power
+      filters:
+        - throttle_average: $sensor_update_interval
+
+  - platform: total_daily_energy
+    name: Täglicher Verbrauch
+    power_id: w_sensor
+    state_class: total_increasing
+    device_class: energy
+    restore: true
+    unit_of_measurement: kWh
+    accuracy_decimals: 3
+    filters:
+      # Multiplication factor from W to kW is 0.001
+      - multiply: 0.001
+
+  # - platform: uptime
+  #   id: uptime_sensor
+  #   internal: True
+
+  - platform: internal_temperature
+    name: "ESP 32 Internal Temperature"
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    name: "Hauptschalter Button"
+    internal: true
+    on_press:
+      - switch.toggle: relay
+
+output:
+  - platform: ledc
+    id: led
+    pin:
+      number: GPIO18
+      inverted: True
+
+switch:
+  - platform: gpio
+    name: "Hauptschalter"
+    pin: GPIO13
+    id: relay
+    restore_mode: ALWAYS_ON
+    disabled_by_default: true
+    on_turn_on:
+      - delay: 500ms
+      - light.turn_on: switch_led
+    on_turn_off:
+      - delay: 500ms
+      - light.turn_off: switch_led
+
+light:
+  - platform: monochromatic
+    id: switch_led
+    output: led
+    internal: True
+  - platform: status_led
+    id: wifi_status_led
+    internal: True
+    pin:
+      number: GPIO05
+      inverted: True
+
+interval:
+  - interval: 30s
+    then:
+      if:
+        condition:
+          wifi.connected:
+        then:
+          - light.turn_on: wifi_status_led
+        else:
+          - light.turn_off: wifi_status_led
