@@ -51,6 +51,14 @@ update:
     source: https://diekruecke.github.io/sonoff-powr316/firmware/manifest.json
     update_interval: 1h
 
+button:
+  - platform: template
+    name: Update Firmware from Github
+    on_press:
+      then:
+        - update.perform:
+            id: firmware_update_start
+
 uart:
   rx_pin: GPIO16
   baud_rate: 4800
