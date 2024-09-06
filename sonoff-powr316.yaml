@@ -11,11 +11,6 @@ packages:
   homeassistant: !include includes/homeassistant_config.yaml
 
 esphome:
-  # name: sonoff-powr320d
-  # friendly_name: $friendly_name
-
-  # name_add_mac_suffix: true
-
   on_boot:
     priority: 250
     then:
@@ -23,26 +18,11 @@ esphome:
 
 esp32:
   board: nodemcu-32s
-
-# wifi:
-#   domain: ".smarthome"
-#   ap:
-
-# captive_portal:
-
-# logger:
-
-# web_server:
-#   version: 2
-
-# api:
+  framework:
+    type: esp-idf
 
 http_request:
-  verify_ssl: false
-
-# ota:
-#   - platform: esphome
-#   - platform: http_request
+  useragent: esphome/device
 
 update:
   - platform: http_request
@@ -67,6 +47,7 @@ uart:
 time:
   - platform: homeassistant
     id: homeassistant_time
+    timezone: Europe/Berlin
 
 sensor:
   - platform: cse7766
@@ -111,10 +92,6 @@ sensor:
     filters:
       # Multiplication factor from W to kW is 0.001
       - multiply: 0.001
-
-  # - platform: uptime
-  #   id: uptime_sensor
-  #   internal: True
 
   - platform: internal_temperature
     name: "ESP 32 Internal Temperature"
